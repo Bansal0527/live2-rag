@@ -1,0 +1,11 @@
+SYNTHETIC DEMO DATA ONLY. Every organization, role, date, and term below is invented.
+
+FICTIONAL STAFF AGREEMENT
+
+Orion Testworks engages a test software engineer starting April 1, 2026.
+
+Responsibilities: The test engineer designs sample features, reviews example code, and maintains demo documentation.
+
+Termination: Either party may end this fictional agreement with 60 calendar days of written notice.
+
+Confidentiality: The test engineer must protect fictional confidential information.
