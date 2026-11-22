@@ -47,7 +47,7 @@ export GOOGLE_API_KEY='your-key'
 uvicorn app.main:app --reload
 ```
 
-Open [Swagger UI](http://127.0.0.1:8000/docs). Data is saved in `./data` by default. `GEMINI_CHAT_MODEL` defaults to `gemini-2.5-flash` and can be changed without changing code.
+Open [Swagger UI](http://127.0.0.1:8000/docs). Data is saved in `./data` by default. `GEMINI_CHAT_MODEL` defaults to `gemini-3.5-flash` and can be changed without changing code.
 
 ## API
 

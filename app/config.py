@@ -17,7 +17,7 @@ class Settings:
         load_dotenv()
         return cls(
             data_dir=Path(os.getenv("DATA_DIR", "./data")).resolve(),
-            chat_model=os.getenv("GEMINI_CHAT_MODEL", "gemini-2.5-flash"),
+            chat_model=os.getenv("GEMINI_CHAT_MODEL", "gemini-3.5-flash"),
             max_upload_bytes=int(os.getenv("MAX_UPLOAD_BYTES", "5242880")),
             max_document_chars=int(os.getenv("MAX_DOCUMENT_CHARS", "100000")),
             min_similarity=float(os.getenv("MIN_SIMILARITY", "0.30")),
