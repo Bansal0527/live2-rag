@@ -52,7 +52,7 @@ class FakeAI:
             ExtractedFact(name="notice_period", value="30 days", evidence="30 days", page=pages[0].number)
         ])
 
-    def answer(self, query, search):
+    def answer(self, query, search, metadata):
         if self.fail_answer:
             raise ProviderFailure("Simulated Gemini answer outage")
         sources = search(query)
@@ -205,6 +205,27 @@ def test_metadata_filter_scopes_agent_search(setup):
     assert missing == {"answer": None, "sources": [], "status": "insufficient_evidence"}
 
 
+def test_agent_metadata_tool_respects_document_filter(setup):
+    client, _, _, ai = setup
+    agreement = upload(client, "agreement.txt").json()["id"]
+    policy = upload(client, "policy.txt").json()["id"]
+
+    def answer(query, search, metadata):
+        records = metadata()
+        assert [record["id"] for record in records] == [agreement]
+        assert records[0]["extraction"]["document_type"] == "Employment Agreement"
+        assert metadata(policy) == []
+        sources = search(query)
+        return AnswerDraft(answer="30 days", citation_ids=[sources[0].chunk_id]), sources
+
+    ai.answer = answer
+    response = client.post("/ask", json={
+        "query": "notice", "filters": {"document_type": "Employment Agreement"},
+    })
+    assert response.status_code == 200
+    assert {source["document_id"] for source in response.json()["sources"]} == {agreement}
+
+
 def test_ask_uses_keyword_only_result(setup):
     client, _, index, _ = setup
     upload(client, text=b"The fictional code is quasar42.")
@@ -220,6 +241,31 @@ def test_invalid_uploads_and_missing_document(setup):
     assert upload(client, text=b" \n ").status_code == 422
     assert upload(client, "bad.pdf", b"plain text").status_code == 422
     assert client.get("/documents/missing").status_code == 404
+
+
+def test_background_upload_reports_processing_then_ready(setup):
+    client, _, _, _ = setup
+    response = client.post("/documents/upload/background", files={
+        "file": ("large.txt", b"The notice period is 30 days."),
+    })
+    assert response.status_code == 202
+    assert response.json()["status"] == "processing"
+    document_id = response.json()["id"]
+    detail = client.get(f"/documents/{document_id}").json()
+    assert detail["status"] == "ready"
+    assert detail["chunk_count"] > 0
+
+
+def test_background_processing_failure_is_visible(setup):
+    client, _, _, ai = setup
+    ai.fail_extract = True
+    response = client.post("/documents/upload/background", files={
+        "file": ("failed.txt", b"The notice period is 30 days."),
+    })
+    assert response.status_code == 202
+    detail = client.get(f"/documents/{response.json()['id']}").json()
+    assert detail["status"] == "failed"
+    assert detail["error"] == "ProviderFailure"
 
 
 def test_provider_failure_keeps_failed_status(setup):

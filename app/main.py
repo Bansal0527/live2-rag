@@ -1,5 +1,5 @@
 import logging
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from app.config import Settings
 from app.llm import InvalidModelOutput, ProviderFailure, ProviderTimeout
@@ -40,6 +40,14 @@ def create_app(service: DocumentService | None = None) -> FastAPI:
         settings = current_service().settings
         content = await file.read(settings.max_upload_bytes + 1)
         return current_service().upload(file.filename or "", content)
+
+    @app.post("/documents/upload/background", response_model=DocumentRecord, status_code=202)
+    async def upload_background(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+        service = current_service()
+        content = await file.read(service.settings.max_upload_bytes + 1)
+        record = service.queue_upload(file.filename or "", content)
+        background_tasks.add_task(service.process_upload, record.id)
+        return record
 
     @app.get("/documents", response_model=list[DocumentRecord])
     def list_documents():

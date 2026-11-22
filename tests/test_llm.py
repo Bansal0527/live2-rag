@@ -37,19 +37,21 @@ def test_answer_agent_uses_retrieval_tool(monkeypatch):
 
     class Agent:
         def invoke(self, _):
-            tool_result = search_tool.invoke({"search_query": "notice"})
+            tool_result = tools["search_documents"].invoke({"search_query": "notice"})
             assert "doc:1" in tool_result
+            metadata_result = tools["list_document_metadata"].invoke({"document_id": "doc"})
+            assert '"id": "doc"' in metadata_result
             return {"structured_response": {"answer": "60 days", "citation_ids": ["doc:1"]}}
 
     def fake_create_agent(**kwargs):
-        nonlocal search_tool
-        search_tool = kwargs["tools"][0]
+        nonlocal tools
+        tools = {item.name: item for item in kwargs["tools"]}
         return Agent()
 
-    search_tool = None
+    tools = {}
     monkeypatch.setattr("app.llm.create_agent", fake_create_agent)
     ai = GeminiService(FakeStructuredModel([]))
-    answer, sources = ai.answer("How much notice?", lambda _: [source])
+    answer, sources = ai.answer("How much notice?", lambda _: [source], lambda _: [{"id": "doc"}])
     assert answer.answer == "60 days"
     assert sources == [source]
 
@@ -61,5 +63,5 @@ def test_invalid_agent_answer_abstains(monkeypatch):
 
     monkeypatch.setattr("app.llm.create_agent", lambda **_: Agent())
     ai = GeminiService(FakeStructuredModel([]))
-    answer, sources = ai.answer("Unknown value?", lambda _: [])
+    answer, sources = ai.answer("Unknown value?", lambda _: [], lambda _: [])
     assert answer.answer is None and sources == []

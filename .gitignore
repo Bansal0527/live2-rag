@@ -3,5 +3,7 @@ __pycache__/
 .pytest_cache/
 .env
 data/
-evaluation/
+evaluation/results.json
+evaluation/RESULTS.md
+evaluation/data/
 *.egg-info/

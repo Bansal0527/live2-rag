@@ -37,6 +37,14 @@ class DocumentService:
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def upload(self, name: str, content: bytes) -> DocumentDetail:
+        record = self._create_upload(name, content)
+        self.process_upload(record.id, raise_errors=True)
+        return self.store.get(record.id)
+
+    def queue_upload(self, name: str, content: bytes) -> DocumentRecord:
+        return self._create_upload(name, content)
+
+    def _create_upload(self, name: str, content: bytes) -> DocumentRecord:
         suffix = Path(name).suffix.lower()
         if suffix not in (".pdf", ".txt"):
             raise InvalidDocument("Only PDF and TXT files are supported")
@@ -46,23 +54,33 @@ class DocumentService:
             raise InvalidDocument("File exceeds upload size limit")
         if suffix == ".pdf" and not content.startswith(b"%PDF-"):
             raise InvalidDocument("File is not a valid PDF")
-        pages = parse_document(content, suffix[1:])
-        if sum(len(page.text) for page in pages) > self.settings.max_document_chars:
-            raise InvalidDocument("Document text exceeds processing limit")
-
         document_id = str(uuid4())
         safe_name = Path(name).name or f"upload{suffix}"
         record = DocumentRecord(
             id=document_id, name=safe_name, file_type=suffix[1:],
             uploaded_at=datetime.now(timezone.utc), status="processing",
         )
-        chunks = chunk_pages(pages, document_id, safe_name)
-        self.store.create(record)
         upload_path = self.upload_dir / f"{document_id}{suffix}"
         try:
             upload_path.write_bytes(content)
-            extraction = self.ai.extract(safe_name, pages)
-            self.index.add(document_id, safe_name, chunks)
+            self.store.create(record)
+        except Exception:
+            upload_path.unlink(missing_ok=True)
+            raise
+        return record
+
+    def process_upload(self, document_id: str, raise_errors: bool = False) -> None:
+        record = self.store.get(document_id)
+        if record is None or record.status != "processing":
+            return
+        try:
+            content = (self.upload_dir / f"{document_id}.{record.file_type}").read_bytes()
+            pages = parse_document(content, record.file_type)
+            if sum(len(page.text) for page in pages) > self.settings.max_document_chars:
+                raise InvalidDocument("Document text exceeds processing limit")
+            chunks = chunk_pages(pages, document_id, record.name)
+            extraction = self.ai.extract(record.name, pages)
+            self.index.add(document_id, record.name, chunks)
             self.store.index_chunks(document_id, chunks)
             self.store.mark_ready(document_id, len(chunks), extraction)
         except Exception as exc:
@@ -71,11 +89,11 @@ class DocumentService:
                 self.index.delete(document_id)
             except Exception:
                 logger.warning("Could not remove partial vector records for %s", document_id)
-            self.store.mark_failed(document_id, type(exc).__name__)
-            if isinstance(exc, (ProviderFailure, InvalidModelOutput, InvalidDocument)):
-                raise
-            raise ProviderFailure("Document processing failed") from exc
-        return self.store.get(document_id)
+            self.store.mark_failed(document_id, str(exc) if isinstance(exc, InvalidDocument) else type(exc).__name__)
+            if raise_errors:
+                if isinstance(exc, (ProviderFailure, InvalidModelOutput, InvalidDocument)):
+                    raise
+                raise ProviderFailure("Document processing failed") from exc
 
     def search(self, query: str, document_ids: list[str] | None = None,
                filters: DocumentFilters | None = None) -> SearchResponse:
@@ -96,7 +114,16 @@ class DocumentService:
 
     def ask(self, query: str, document_ids: list[str] | None = None,
             filters: DocumentFilters | None = None) -> AskResponse:
-        draft, sources = self.ai.answer(query, lambda q: self.search(q, document_ids, filters).results)
+        def metadata(document_id: str | None = None):
+            eligible = self.store.filtered_ready_ids(document_ids, filters)
+            ids = [document_id] if document_id is not None and document_id in eligible else (
+                sorted(eligible) if document_id is None else []
+            )
+            return [self.store.get(identifier).model_dump(mode="json") for identifier in ids]
+
+        draft, sources = self.ai.answer(
+            query, lambda q: self.search(q, document_ids, filters).results, metadata,
+        )
         source_map = {source.chunk_id: source for source in sources}
         citations = list(dict.fromkeys(draft.citation_ids))
         if not draft.answer or not citations or any(identifier not in source_map for identifier in citations):
