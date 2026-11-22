@@ -31,6 +31,19 @@ def test_extraction_fails_after_two_invalid_responses():
         ai.extract("agreement.txt", [PageText(None, "Some content")])
 
 
+def test_extraction_preserves_conflicting_facts_and_missing_type():
+    ai = GeminiService(FakeStructuredModel([{
+        "document_type": None,
+        "facts": [
+            {"name": "claim deadline", "value": "10 days", "evidence": "claims within 10 days", "page": None},
+            {"name": "claim deadline", "value": "20 days", "evidence": "claims within 20 days", "page": None},
+        ],
+    }]))
+    result = ai.extract("draft.txt", [PageText(None, "Draft says claims within 10 days. Another section says claims within 20 days.")])
+    assert result.document_type is None
+    assert [fact.value for fact in result.facts] == ["10 days", "20 days"]
+
+
 def test_answer_agent_uses_retrieval_tool(monkeypatch):
     source = Source(document_id="doc", document_name="test.txt", page=None,
                     chunk_id="doc:1", text="Notice is 60 days.", similarity=0.9)

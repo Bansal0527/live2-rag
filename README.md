@@ -34,17 +34,18 @@ SQLite stores operational document metadata, validated business facts, and an FT
 Requires Python 3.10+ and a Gemini API key. Gemini calls can incur API charges and send uploaded document text to Google.
 
 ```bash
+git clone https://github.com/Bansal0527/live2-rag.git
+cd live2-rag
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e '.[test]'
 cp .env.example .env
 ```
 
-Set `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) in `.env` or your shell. For example:
+Replace `replace-with-your-key` in `.env` with your Gemini API key. You can also set `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) in your shell. Start the API from the repository root:
 
 ```bash
-export GOOGLE_API_KEY='your-key'
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 Open [Swagger UI](http://127.0.0.1:8000/docs). Data is saved in `./data` by default. `GEMINI_CHAT_MODEL` defaults to `gemini-3.5-flash` and can be changed without changing code.
@@ -64,7 +65,9 @@ Example:
 
 ```bash
 curl -F 'file=@samples/employment_agreement.txt' http://127.0.0.1:8000/documents/upload
+curl -F 'file=@samples/vendor_terms.txt' http://127.0.0.1:8000/documents/upload
 curl -F 'file=@samples/company_policy.pdf' http://127.0.0.1:8000/documents/upload/background
+curl http://127.0.0.1:8000/documents
 curl -H 'Content-Type: application/json' -d '{"query":"What is the notice period?"}' http://127.0.0.1:8000/ask
 curl -H 'Content-Type: application/json' -d '{"query":"notice period","filters":{"document_type":"Employment Agreement","file_type":"txt"}}' http://127.0.0.1:8000/search
 ```
@@ -93,8 +96,10 @@ Synchronous and background upload routes share the same 5 MiB maximum file size 
 ## Tests
 
 ```bash
-pytest -q
+python -m pytest -q
 ```
+
+See [test results](TEST_RESULTS.md) for the latest automated and live evaluation outcomes. A readable [Codex coding-session export](docs/CODEX_SESSION.md) is included with the submission.
 
 Tests use fake Gemini and vector components, so they run without an API key. They cover uploads, background status and failure, metadata and agent tools, grounded citations, missing answers, cross-document search and filtering, invalid files, provider failure, and evaluation scoring.
 

@@ -1,0 +1,347 @@
+{
+  "run_at_utc": "2026-11-22T20:56:16.016016+00:00",
+  "documents": [
+    {
+      "id": "10acb9b1-2fb9-4f7a-8388-0d3fddbbdb2a",
+      "name": "employment_agreement.txt",
+      "file_type": "txt",
+      "uploaded_at": "2026-11-22T20:56:16.450450Z",
+      "status": "ready",
+      "chunk_count": 1,
+      "error": null,
+      "extraction": {
+        "document_type": "FICTIONAL STAFF AGREEMENT",
+        "summary": "Fictional staff agreement between Orion Testworks and a test software engineer starting April 1, 2026.",
+        "facts": [
+          {
+            "name": "Employer",
+            "value": "Orion Testworks",
+            "evidence": "Orion Testworks engages a test software engineer starting April 1, 2026.",
+            "page": null
+          },
+          {
+            "name": "Position",
+            "value": "test software engineer",
+            "evidence": "Orion Testworks engages a test software engineer starting April 1, 2026.",
+            "page": null
+          },
+          {
+            "name": "Start Date",
+            "value": "April 1, 2026",
+            "evidence": "Orion Testworks engages a test software engineer starting April 1, 2026.",
+            "page": null
+          }
+        ],
+        "key_clauses": [
+          {
+            "name": "Responsibilities",
+            "value": "The test engineer designs sample features, reviews example code, and maintains demo documentation.",
+            "evidence": "Responsibilities: The test engineer designs sample features, reviews example code, and maintains demo documentation.",
+            "page": null
+          },
+          {
+            "name": "Termination",
+            "value": "Either party may end this fictional agreement with 60 calendar days of written notice.",
+            "evidence": "Termination: Either party may end this fictional agreement with 60 calendar days of written notice.",
+            "page": null
+          },
+          {
+            "name": "Confidentiality",
+            "value": "The test engineer must protect fictional confidential information.",
+            "evidence": "Confidentiality: The test engineer must protect fictional confidential information.",
+            "page": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "805f2811-621d-416e-82bd-e9d12dee55db",
+      "name": "vendor_terms.txt",
+      "file_type": "txt",
+      "uploaded_at": "2026-11-22T20:56:58.179930Z",
+      "status": "ready",
+      "chunk_count": 1,
+      "error": null,
+      "extraction": {
+        "document_type": "Fictional Vendor Service Terms",
+        "summary": "Nova Mock Supplies provides sample office equipment to Orion Testworks subject to specific payment and termination terms.",
+        "facts": [
+          {
+            "name": "Provider",
+            "value": "Nova Mock Supplies",
+            "evidence": "Nova Mock Supplies provides sample office equipment to Orion Testworks.",
+            "page": null
+          },
+          {
+            "name": "Recipient",
+            "value": "Orion Testworks",
+            "evidence": "Nova Mock Supplies provides sample office equipment to Orion Testworks.",
+            "page": null
+          },
+          {
+            "name": "Product/Service Provided",
+            "value": "sample office equipment",
+            "evidence": "Nova Mock Supplies provides sample office equipment to Orion Testworks.",
+            "page": null
+          }
+        ],
+        "key_clauses": [
+          {
+            "name": "Payment terms",
+            "value": "Orion Testworks will pay undisputed sample invoices within 30 calendar days of receipt.",
+            "evidence": "Orion Testworks will pay undisputed sample invoices within 30 calendar days of receipt.",
+            "page": null
+          },
+          {
+            "name": "Termination",
+            "value": "Either party may end these fictional terms with 15 calendar days of written notice.",
+            "evidence": "Either party may end these fictional terms with 15 calendar days of written notice.",
+            "page": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "d56610c5-9dce-45d9-9aba-9d121f0fff50",
+      "name": "company_policy.pdf",
+      "file_type": "pdf",
+      "uploaded_at": "2026-11-22T20:57:37.959452Z",
+      "status": "ready",
+      "chunk_count": 1,
+      "error": null,
+      "extraction": {
+        "document_type": "Leave Policy",
+        "summary": "Orion Testworks provides 20 days of annual leave to fictional full-time staff, requiring 10 business days advance notice for leave requests and permitting up to 5 unused days to be carried forward into the next test calendar year.",
+        "facts": [
+          {
+            "name": "Company Name",
+            "value": "Orion Testworks",
+            "evidence": "Orion Testworks provides 20 days of annual leave",
+            "page": 1
+          },
+          {
+            "name": "Annual Leave Entitlement",
+            "value": "20 days",
+            "evidence": "provides 20 days of annual leave to fictional full-time staff",
+            "page": 1
+          }
+        ],
+        "key_clauses": [
+          {
+            "name": "Leave Request Submission Notice",
+            "value": "At least 10 business days before planned absence",
+            "evidence": "Demo leave requests must be submitted at least 10 business days before the planned absence.",
+            "page": 1
+          },
+          {
+            "name": "Carry Forward Limit",
+            "value": "Up to 5 unused days",
+            "evidence": "Up to 5 unused days may be carried forward into the next test calendar year.",
+            "page": 1
+          }
+        ]
+      }
+    }
+  ],
+  "results": [
+    {
+      "id": "staff_notice",
+      "query": "What is the notice period in the employment agreement?",
+      "passed": true,
+      "expected_answer": "60 calendar days of written notice",
+      "expected_status": "answered",
+      "expected_documents": [
+        "employment_agreement.txt"
+      ],
+      "http_status": 200,
+      "source_references_valid": true,
+      "response": {
+        "answer": "The notice period in the employment agreement is 60 calendar days of written notice.",
+        "sources": [
+          {
+            "document_id": "10acb9b1-2fb9-4f7a-8388-0d3fddbbdb2a",
+            "document_name": "employment_agreement.txt",
+            "page": null,
+            "chunk_id": "10acb9b1-2fb9-4f7a-8388-0d3fddbbdb2a:1",
+            "text": "SYNTHETIC DEMO DATA ONLY. Every organization, role, date, and term below is invented.\n\nFICTIONAL STAFF AGREEMENT\n\nOrion Testworks engages a test software engineer starting April 1, 2026.\n\nResponsibilities: The test engineer designs sample features, reviews example code, and maintains demo documentation.\n\nTermination: Either party may end this fictional agreement with 60 calendar days of written notice.\n\nConfidentiality: The test engineer must protect fictional confidential information.",
+            "similarity": 0.6579,
+            "relevance_score": 1.0
+          }
+        ],
+        "status": "answered"
+      }
+    },
+    {
+      "id": "staff_notice_paraphrase",
+      "query": "How much advance written notice is needed to end the test engineer agreement?",
+      "passed": true,
+      "expected_answer": "60 calendar days of written notice",
+      "expected_status": "answered",
+      "expected_documents": [
+        "employment_agreement.txt"
+      ],
+      "http_status": 200,
+      "source_references_valid": true,
+      "response": {
+        "answer": "To end the test engineer agreement, 60 calendar days of written notice is required.",
+        "sources": [
+          {
+            "document_id": "10acb9b1-2fb9-4f7a-8388-0d3fddbbdb2a",
+            "document_name": "employment_agreement.txt",
+            "page": null,
+            "chunk_id": "10acb9b1-2fb9-4f7a-8388-0d3fddbbdb2a:1",
+            "text": "SYNTHETIC DEMO DATA ONLY. Every organization, role, date, and term below is invented.\n\nFICTIONAL STAFF AGREEMENT\n\nOrion Testworks engages a test software engineer starting April 1, 2026.\n\nResponsibilities: The test engineer designs sample features, reviews example code, and maintains demo documentation.\n\nTermination: Either party may end this fictional agreement with 60 calendar days of written notice.\n\nConfidentiality: The test engineer must protect fictional confidential information.",
+            "similarity": 0.7369,
+            "relevance_score": 1.0
+          }
+        ],
+        "status": "answered"
+      }
+    },
+    {
+      "id": "staff_start",
+      "query": "When does the test software engineer start?",
+      "passed": true,
+      "expected_answer": "April 1, 2026",
+      "expected_status": "answered",
+      "expected_documents": [
+        "employment_agreement.txt"
+      ],
+      "http_status": 200,
+      "source_references_valid": true,
+      "response": {
+        "answer": "The test software engineer starts on April 1, 2026.",
+        "sources": [
+          {
+            "document_id": "10acb9b1-2fb9-4f7a-8388-0d3fddbbdb2a",
+            "document_name": "employment_agreement.txt",
+            "page": null,
+            "chunk_id": "10acb9b1-2fb9-4f7a-8388-0d3fddbbdb2a:1",
+            "text": "SYNTHETIC DEMO DATA ONLY. Every organization, role, date, and term below is invented.\n\nFICTIONAL STAFF AGREEMENT\n\nOrion Testworks engages a test software engineer starting April 1, 2026.\n\nResponsibilities: The test engineer designs sample features, reviews example code, and maintains demo documentation.\n\nTermination: Either party may end this fictional agreement with 60 calendar days of written notice.\n\nConfidentiality: The test engineer must protect fictional confidential information.",
+            "similarity": 0.7494,
+            "relevance_score": 1.0
+          }
+        ],
+        "status": "answered"
+      }
+    },
+    {
+      "id": "vendor_notice",
+      "query": "What written notice ends the vendor service terms?",
+      "passed": true,
+      "expected_answer": "15 calendar days of written notice",
+      "expected_status": "answered",
+      "expected_documents": [
+        "vendor_terms.txt"
+      ],
+      "http_status": 200,
+      "source_references_valid": true,
+      "response": {
+        "answer": "Either party may end the vendor service terms with 15 calendar days of written notice.",
+        "sources": [
+          {
+            "document_id": "805f2811-621d-416e-82bd-e9d12dee55db",
+            "document_name": "vendor_terms.txt",
+            "page": null,
+            "chunk_id": "805f2811-621d-416e-82bd-e9d12dee55db:1",
+            "text": "SYNTHETIC DEMO DATA ONLY. Every organization and term below is invented.\n\nFICTIONAL VENDOR SERVICE TERMS\n\nNova Mock Supplies provides sample office equipment to Orion Testworks.\n\nPayment terms: Orion Testworks will pay undisputed sample invoices within 30 calendar days of receipt.\n\nTermination: Either party may end these fictional terms with 15 calendar days of written notice.",
+            "similarity": 0.7497,
+            "relevance_score": 1.0
+          }
+        ],
+        "status": "answered"
+      }
+    },
+    {
+      "id": "vendor_payment",
+      "query": "When are undisputed sample invoices due?",
+      "passed": true,
+      "expected_answer": "Within 30 calendar days of receipt",
+      "expected_status": "answered",
+      "expected_documents": [
+        "vendor_terms.txt"
+      ],
+      "http_status": 200,
+      "source_references_valid": true,
+      "response": {
+        "answer": "Undisputed sample invoices are due within 30 calendar days of receipt.",
+        "sources": [
+          {
+            "document_id": "805f2811-621d-416e-82bd-e9d12dee55db",
+            "document_name": "vendor_terms.txt",
+            "page": null,
+            "chunk_id": "805f2811-621d-416e-82bd-e9d12dee55db:1",
+            "text": "SYNTHETIC DEMO DATA ONLY. Every organization and term below is invented.\n\nFICTIONAL VENDOR SERVICE TERMS\n\nNova Mock Supplies provides sample office equipment to Orion Testworks.\n\nPayment terms: Orion Testworks will pay undisputed sample invoices within 30 calendar days of receipt.\n\nTermination: Either party may end these fictional terms with 15 calendar days of written notice.",
+            "similarity": 0.694,
+            "relevance_score": 1.0
+          }
+        ],
+        "status": "answered"
+      }
+    },
+    {
+      "id": "annual_leave",
+      "query": "How many days of annual leave are provided to full-time staff?",
+      "passed": true,
+      "expected_answer": "20 days of annual leave",
+      "expected_status": "answered",
+      "expected_documents": [
+        "company_policy.pdf"
+      ],
+      "http_status": 200,
+      "source_references_valid": true,
+      "response": {
+        "answer": "Full-time staff are provided with 20 days of annual leave.",
+        "sources": [
+          {
+            "document_id": "d56610c5-9dce-45d9-9aba-9d121f0fff50",
+            "document_name": "company_policy.pdf",
+            "page": 1,
+            "chunk_id": "d56610c5-9dce-45d9-9aba-9d121f0fff50:1",
+            "text": "SYNTHETIC DEMO DATA ONLY. All terms below are invented.\n\nFICTIONAL COMPANY LEAVE POLICY\n\nOrion Testworks provides 20 days of annual leave to fictional full-time staff.\n\nDemo leave requests must be submitted at least 10 business days before the planned absence.\n\nUp to 5 unused days may be carried forward into the next test calendar year.",
+            "similarity": 0.7029,
+            "relevance_score": 1.0
+          }
+        ],
+        "status": "answered"
+      }
+    },
+    {
+      "id": "leave_request",
+      "query": "How far in advance must a demo leave request be submitted?",
+      "passed": true,
+      "expected_answer": "At least 10 business days before the planned absence",
+      "expected_status": "answered",
+      "expected_documents": [
+        "company_policy.pdf"
+      ],
+      "http_status": 200,
+      "source_references_valid": true,
+      "response": {
+        "answer": "Demo leave requests must be submitted at least 10 business days before the planned absence.",
+        "sources": [
+          {
+            "document_id": "d56610c5-9dce-45d9-9aba-9d121f0fff50",
+            "document_name": "company_policy.pdf",
+            "page": 1,
+            "chunk_id": "d56610c5-9dce-45d9-9aba-9d121f0fff50:1",
+            "text": "SYNTHETIC DEMO DATA ONLY. All terms below are invented.\n\nFICTIONAL COMPANY LEAVE POLICY\n\nOrion Testworks provides 20 days of annual leave to fictional full-time staff.\n\nDemo leave requests must be submitted at least 10 business days before the planned absence.\n\nUp to 5 unused days may be carried forward into the next test calendar year.",
+            "similarity": 0.7724,
+            "relevance_score": 1.0
+          }
+        ],
+        "status": "answered"
+      }
+    }
+  ],
+  "passed": 7,
+  "total": 10,
+  "chat_model": "gemini-3.5-flash",
+  "run_status": "incomplete_due_to_gemini_quota",
+  "interruption": "Gemini 3.5 Flash returned repeated 429 RESOURCE_EXHAUSTED responses after seven completed questions.",
+  "unrun_question_ids": [
+    "leave_carryover",
+    "cross_document_notice",
+    "missing_allowance"
+  ]
+}
