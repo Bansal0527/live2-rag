@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from evaluation.run import score_case
+from evaluation.run import score_case, valid_sources
 
 
 def test_predefined_evaluation_has_ten_cases():
@@ -28,3 +28,16 @@ def test_evaluation_scores_answer_and_citations():
     assert not score_case(case, {**body, "sources": []})
     assert not score_case(case, {**body, "answer": "15 days"})
     assert not score_case({**case, "expected_answer": "15 calendar days"}, body)
+
+
+def test_evaluation_checks_source_against_uploaded_document():
+    records = {"employment_agreement.txt": {
+        "id": "doc-1", "name": "employment_agreement.txt", "file_type": "txt",
+    }}
+    source = {
+        "document_id": "doc-1", "document_name": "employment_agreement.txt",
+        "chunk_id": "doc-1:1", "page": None,
+        "text": "60 calendar days of written notice",
+    }
+    assert valid_sources([source], records)
+    assert not valid_sources([{**source, "text": "90 calendar days"}], records)
