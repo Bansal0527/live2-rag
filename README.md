@@ -104,4 +104,4 @@ Run the optional 10-question live evaluation against the three fictional sample 
 python -m evaluation.run
 ```
 
-It creates a temporary database, calls the real Gemini services, scores expected answer terms and source documents, and writes `evaluation/results.json` locally. This requires an API key and available Gemini quota; it can incur charges. The automated tests validate the evaluator without calling Gemini.
+It creates a temporary database, calls the real Gemini services, and writes `evaluation/results.json` locally with each expected answer beside the returned answer. The simple scorer checks key terms from the expected answer, answer status, and source documents; it accepts different wording. This requires an API key and available Gemini quota; it can incur charges. The automated tests validate the evaluator without calling Gemini.

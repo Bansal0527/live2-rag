@@ -20,12 +20,14 @@ DOCUMENTS = ("employment_agreement.txt", "vendor_terms.txt", "company_policy.pdf
 
 def score_case(case: dict, body: dict) -> bool:
     if case["expected_status"] == "insufficient_evidence":
-        return body.get("status") == "insufficient_evidence" and body.get("answer") is None and not body.get("sources")
+        return (case["expected_answer"] is None and body.get("status") == "insufficient_evidence"
+                and body.get("answer") is None and not body.get("sources"))
+    expected = case["expected_answer"].casefold()
     answer = (body.get("answer") or "").casefold()
     sources = body.get("sources") or []
     return (
         body.get("status") == "answered"
-        and all(term.casefold() in answer for term in case["expected_terms"])
+        and all(term.casefold() in expected and term.casefold() in answer for term in case["expected_terms"])
         and set(case["expected_documents"]).issubset({source.get("document_name") for source in sources})
         and all(source.get("chunk_id", "").startswith(source.get("document_id", "") + ":") for source in sources)
     )
@@ -35,6 +37,8 @@ def run() -> dict:
     questions = json.loads((ROOT / "questions.json").read_text())
     if len(questions) != 10:
         raise ValueError("Evaluation requires exactly 10 questions")
+    if any("expected_answer" not in case for case in questions):
+        raise ValueError("Every evaluation question needs an expected answer")
     results = []
     with TemporaryDirectory() as directory:
         service = build_service(replace(Settings.from_env(), data_dir=Path(directory)))
@@ -51,7 +55,8 @@ def run() -> dict:
                 passed = response.status_code == 200 and score_case(case, body)
                 results.append({
                     "id": case["id"], "passed": passed, "http_status": response.status_code,
-                    "status": body.get("status"), "answer": body.get("answer"),
+                    "status": body.get("status"), "expected_answer": case["expected_answer"],
+                    "answer": body.get("answer"),
                     "source_documents": [source.get("document_name") for source in body.get("sources", [])],
                 })
                 print(f"{'PASS' if passed else 'FAIL'} {case['id']}: {body.get('status', response.status_code)}", flush=True)
