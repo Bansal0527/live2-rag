@@ -22,5 +22,8 @@ def test_chroma_persists_chunks_and_source_metadata(tmp_path):
     assert hits[0].page == 2
     assert hits[0].document_name == "policy.pdf"
     assert hits[0].chunk_id == "doc-1:1"
+    stored_chunks = reopened.chunks_for_document("doc-1")
+    assert len(stored_chunks) == 1
+    assert stored_chunks[0].metadata["chunk_id"] == "doc-1:1"
     reopened.delete("doc-1")
     assert reopened.search("annual leave", {"doc-1"}, None, 0.3) == []

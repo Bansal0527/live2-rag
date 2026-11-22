@@ -13,6 +13,7 @@ class FakeIndex:
     def __init__(self):
         self.docs = {}
         self.fail_add = False
+        self.skip_results = False
 
     def add(self, document_id, document_name, chunks):
         if self.fail_add:
@@ -23,7 +24,7 @@ class FakeIndex:
         self.docs.pop(document_id, None)
 
     def search(self, query, ready_ids, document_ids, min_similarity, limit=5):
-        if "unknown" in query.lower():
+        if self.skip_results or "unknown" in query.lower():
             return []
         results = []
         for document_id, (name, chunks) in self.docs.items():
@@ -123,6 +124,46 @@ def test_search_spans_documents_and_filters(setup):
     assert {hit["document_id"] for hit in all_hits} == {a, b}
     filtered = client.post("/search", json={"query": "termination notice", "document_ids": [a]}).json()["results"]
     assert {hit["document_id"] for hit in filtered} == {a}
+
+
+def test_keyword_search_recovers_exact_term_when_vector_misses(setup):
+    client, _, index, _ = setup
+    document_id = upload(client, text=b"The fictional device code is quasar42.").json()["id"]
+    index.skip_results = True
+    response = client.post("/search", json={"query": "quasar42"})
+    assert response.status_code == 200
+    hit = response.json()["results"][0]
+    assert hit["document_id"] == document_id
+    assert hit["similarity"] is None
+    assert hit["relevance_score"] > 0
+
+
+def test_hybrid_ranks_agreement_between_methods_first(setup):
+    client, _, _, _ = setup
+    upload(client, "generic.txt", b"An unrelated example sentence.")
+    target_id = upload(client, "code.txt", b"The fictional device code is quasar42.").json()["id"]
+    hits = client.post("/search", json={"query": "quasar42"}).json()["results"]
+    assert hits[0]["document_id"] == target_id
+    assert hits[0]["similarity"] is not None
+    assert hits[0]["relevance_score"] > hits[1]["relevance_score"]
+
+
+def test_hybrid_keyword_results_respect_document_filter(setup):
+    client, _, index, _ = setup
+    first = upload(client, "first.txt", b"The fictional code is quasar42.").json()["id"]
+    upload(client, "second.txt", b"The fictional code is quasar42.")
+    index.skip_results = True
+    hits = client.post("/search", json={"query": "quasar42", "document_ids": [first]}).json()["results"]
+    assert len(hits) == 1 and hits[0]["document_id"] == first
+
+
+def test_ask_uses_keyword_only_result(setup):
+    client, _, index, _ = setup
+    upload(client, text=b"The fictional code is quasar42.")
+    index.skip_results = True
+    answer = client.post("/ask", json={"query": "quasar42"}).json()
+    assert answer["status"] == "answered"
+    assert len(answer["sources"]) == 1
 
 
 def test_invalid_uploads_and_missing_document(setup):

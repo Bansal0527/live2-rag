@@ -20,6 +20,11 @@ class ChromaIndex:
         if matches["ids"]:
             self.store.delete(ids=matches["ids"])
 
+    def chunks_for_document(self, document_id: str) -> list[Document]:
+        matches = self.store.get(where={"document_id": document_id}, include=["documents", "metadatas"])
+        return [Document(page_content=text, metadata=metadata)
+                for text, metadata in zip(matches["documents"], matches["metadatas"])]
+
     def search(self, query: str, ready_ids: set[str], document_ids: list[str] | None,
                min_similarity: float, limit: int = 5) -> list[Source]:
         eligible = ready_ids if document_ids is None else ready_ids.intersection(document_ids)

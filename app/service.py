@@ -12,6 +12,21 @@ from app.vector import ChromaIndex
 logger = logging.getLogger(__name__)
 
 
+def fuse_results(vector_hits, keyword_hits, limit: int = 5):
+    """Combine ranked lists with reciprocal rank fusion; no score calibration needed."""
+    sources = {}
+    scores = {}
+    for hits in (vector_hits, keyword_hits):
+        for rank, source in enumerate(hits, start=1):
+            sources.setdefault(source.chunk_id, source)
+            scores[source.chunk_id] = scores.get(source.chunk_id, 0) + 1 / (60 + rank)
+    ranked = sorted(sources, key=lambda chunk_id: (-scores[chunk_id], chunk_id))[:limit]
+    maximum = 2 / 61
+    return [sources[chunk_id].model_copy(update={
+        "relevance_score": round(scores[chunk_id] / maximum, 4)
+    }) for chunk_id in ranked]
+
+
 class DocumentService:
     def __init__(self, settings: Settings, store: DocumentStore, index, ai):
         self.settings = settings
@@ -48,6 +63,7 @@ class DocumentService:
             upload_path.write_bytes(content)
             extraction = self.ai.extract(safe_name, pages)
             self.index.add(document_id, safe_name, chunks)
+            self.store.index_chunks(document_id, chunks)
             self.store.mark_ready(document_id, len(chunks), extraction)
         except Exception as exc:
             logger.error("Document %s processing failed: %s", document_id, type(exc).__name__)
@@ -63,15 +79,16 @@ class DocumentService:
 
     def search(self, query: str, document_ids: list[str] | None = None) -> SearchResponse:
         try:
-            sources = self.index.search(
+            vector_hits = self.index.search(
                 query, self.store.ready_ids(), document_ids,
-                self.settings.min_similarity,
+                self.settings.min_similarity, limit=10,
             )
+            keyword_hits = self.store.keyword_search(query, document_ids, limit=10)
         except TimeoutError as exc:
             raise ProviderTimeout("Embedding search timed out") from exc
         except Exception as exc:
-            raise ProviderFailure("Embedding search failed") from exc
-        return SearchResponse(results=sources)
+            raise ProviderFailure("Document search failed") from exc
+        return SearchResponse(results=fuse_results(vector_hits, keyword_hits))
 
     def ask(self, query: str, document_ids: list[str] | None = None) -> AskResponse:
         draft, sources = self.ai.answer(query, lambda q: self.search(q, document_ids).results)
@@ -90,7 +107,10 @@ def build_service(settings: Settings) -> DocumentService:
         raise RuntimeError("Set GOOGLE_API_KEY or GEMINI_API_KEY before starting the API")
     embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     model = ChatGoogleGenerativeAI(model=settings.chat_model, temperature=0, timeout=45, max_retries=1)
+    store = DocumentStore(settings.data_dir / "documents.sqlite3")
+    index = ChromaIndex(settings.data_dir / "chroma", embeddings)
+    for document_id in store.unindexed_ready_ids():
+        store.index_chunks(document_id, index.chunks_for_document(document_id))
     return DocumentService(
-        settings, DocumentStore(settings.data_dir / "documents.sqlite3"),
-        ChromaIndex(settings.data_dir / "chroma", embeddings), GeminiService(model),
+        settings, store, index, GeminiService(model),
     )

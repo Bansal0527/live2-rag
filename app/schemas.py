@@ -37,7 +37,8 @@ class Source(BaseModel):
     page: int | None
     chunk_id: str
     text: str
-    similarity: float
+    similarity: float | None = None
+    relevance_score: float | None = None
 
 
 class QueryRequest(BaseModel):
