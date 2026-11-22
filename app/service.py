@@ -5,7 +5,7 @@ import logging
 from app.config import Settings
 from app.llm import GeminiService, InvalidModelOutput, ProviderFailure, ProviderTimeout
 from app.parsing import InvalidDocument, chunk_pages, parse_document
-from app.schemas import AskResponse, DocumentDetail, DocumentRecord, SearchResponse
+from app.schemas import AskResponse, DocumentDetail, DocumentFilters, DocumentRecord, SearchResponse
 from app.storage import DocumentStore
 from app.vector import ChromaIndex
 
@@ -77,21 +77,26 @@ class DocumentService:
             raise ProviderFailure("Document processing failed") from exc
         return self.store.get(document_id)
 
-    def search(self, query: str, document_ids: list[str] | None = None) -> SearchResponse:
+    def search(self, query: str, document_ids: list[str] | None = None,
+               filters: DocumentFilters | None = None) -> SearchResponse:
         try:
+            eligible_ids = self.store.filtered_ready_ids(document_ids, filters)
+            if not eligible_ids:
+                return SearchResponse(results=[])
             vector_hits = self.index.search(
-                query, self.store.ready_ids(), document_ids,
+                query, eligible_ids, None,
                 self.settings.min_similarity, limit=10,
             )
-            keyword_hits = self.store.keyword_search(query, document_ids, limit=10)
+            keyword_hits = self.store.keyword_search(query, list(eligible_ids), limit=10)
         except TimeoutError as exc:
             raise ProviderTimeout("Embedding search timed out") from exc
         except Exception as exc:
             raise ProviderFailure("Document search failed") from exc
         return SearchResponse(results=fuse_results(vector_hits, keyword_hits))
 
-    def ask(self, query: str, document_ids: list[str] | None = None) -> AskResponse:
-        draft, sources = self.ai.answer(query, lambda q: self.search(q, document_ids).results)
+    def ask(self, query: str, document_ids: list[str] | None = None,
+            filters: DocumentFilters | None = None) -> AskResponse:
+        draft, sources = self.ai.answer(query, lambda q: self.search(q, document_ids, filters).results)
         source_map = {source.chunk_id: source for source in sources}
         citations = list(dict.fromkeys(draft.citation_ids))
         if not draft.answer or not citations or any(identifier not in source_map for identifier in citations):

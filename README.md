@@ -53,7 +53,7 @@ Open [Swagger UI](http://127.0.0.1:8000/docs). Data is saved in `./data` by defa
 | `POST /documents/upload` | Multipart `file`; process PDF or UTF-8 TXT synchronously |
 | `GET /documents` | List document IDs, filenames, timestamps, counts, and status |
 | `GET /documents/{id}` | Get operational metadata and extracted information |
-| `POST /search` | Hybrid keyword and semantic search; body `{"query":"...", "document_ids":null}` |
+| `POST /search` | Hybrid keyword and semantic search with optional document filters |
 | `POST /ask` | Answer from retrieved chunks and return verified source references |
 
 Example:
@@ -61,9 +61,12 @@ Example:
 ```bash
 curl -F 'file=@samples/employment_agreement.txt' http://127.0.0.1:8000/documents/upload
 curl -H 'Content-Type: application/json' -d '{"query":"What is the notice period?"}' http://127.0.0.1:8000/ask
+curl -H 'Content-Type: application/json' -d '{"query":"notice period","filters":{"document_type":"Employment Agreement","file_type":"txt"}}' http://127.0.0.1:8000/search
 ```
 
 Files in `samples/` are fictional demo fixtures created for this project.
+
+Both `/search` and `/ask` accept `filters` with optional `name`, `file_type` (`pdf` or `txt`), and `document_type` fields. Fields are combined with AND; `name` matches the full filename and both `name` and `document_type` match case-insensitively. `document_type` is the value from validated information extraction. The existing `document_ids` field can be combined with these filters. SQLite selects matching ready documents, then both Chroma and FTS5 search only their IDs. A filter with no matches returns no search results or an insufficient-evidence answer.
 
 `/ask` returns `{"answer": null, "sources": [], "status": "insufficient_evidence"}` when retrieval finds no relevant chunks or the model cannot provide a valid source citation. Each source includes the document ID/name, page (null for TXT), chunk ID, supporting text, optional vector `similarity`, and fused `relevance_score`. HTTP 422 covers invalid or empty files, 413 covers configured size limits, 502 covers Gemini/index failures or invalid model output, and 504 covers timeouts.
 
@@ -72,7 +75,7 @@ Files in `samples/` are fictional demo fixtures created for this project.
 - **Gemini embedding-001:** text-only retrieval fits this assignment. The LangChain adapter uses `RETRIEVAL_DOCUMENT` and `RETRIEVAL_QUERY` for the respective inputs. Default 3072-dimensional embeddings avoid extra normalization logic. The model's 2,048-token input limit is well above our 1,200-character chunk target.
 - **Chunking:** `RecursiveCharacterTextSplitter` splits LangChain `Document` objects inside each PDF page at roughly 1,200 characters with 180-character overlap. This preserves precise page citations and keeps a nearby clause from being cut in two.
 - **RAG flow:** A LangChain agent receives a single `search_documents` tool. It searches the uploaded documents, then returns a Pydantic answer with chunk IDs. The API accepts citations only for chunks actually returned by the tool.
-- **Relevance:** Chroma uses cosine distance. The API converts it to `1 - distance` and uses `MIN_SIMILARITY` (default `0.30`) as an initial vector cutoff. SQLite FTS5 ranks keyword matches with BM25. Reciprocal rank fusion combines the top results from both lists; a chunk found by both methods receives a higher rank. `relevance_score` is a normalized fusion score, not a probability. `similarity` is null for keyword-only results. Optional `document_ids` filtering applies to both indexes. The cutoff and fusion ranking should be tuned with representative questions.
+- **Relevance:** Chroma uses cosine distance. The API converts it to `1 - distance` and uses `MIN_SIMILARITY` (default `0.30`) as an initial vector cutoff. SQLite FTS5 ranks keyword matches with BM25. Reciprocal rank fusion combines the top results from both lists; a chunk found by both methods receives a higher rank. `relevance_score` is a normalized fusion score, not a probability. `similarity` is null for keyword-only results. Optional metadata and `document_ids` filtering applies to both indexes. The cutoff and fusion ranking should be tuned with representative questions.
 - **Hallucination controls:** extraction requires a verbatim evidence quote on the cited page. Q&A uses retrieved chunks only, can abstain, and accepts citations only if their chunk IDs came from retrieval. This checks source identity and evidence location; it cannot prove every sentence is logically entailed by the quote.
 - **Failure behavior:** malformed extraction is retried once. Provider and embedding failures return a clear error; document records remain in `failed` state for inspection. There is no distributed transaction across SQLite and Chroma, so cleanup is best effort.
 
@@ -86,6 +89,6 @@ Uploads are synchronous. Maximum file size is 5 MiB and maximum extracted text i
 pytest -q
 ```
 
-Tests use fake Gemini and vector components, so they run without an API key. They cover two-document upload and metadata, grounded citations, missing answers, cross-document search/filtering, invalid files, provider failure, fabricated citations, and query validation. An end-to-end Gemini smoke test requires a key and is not part of the automated suite.
+Tests use fake Gemini and vector components, so they run without an API key. They cover two-document upload and metadata, grounded citations, missing answers, cross-document search and metadata filtering, invalid files, provider failure, fabricated citations, and query validation. An end-to-end Gemini smoke test requires a key and is not part of the automated suite.
 
-Last local run: `24 passed`. Live Gemini checks require available API quota.
+Live Gemini checks require available API quota.

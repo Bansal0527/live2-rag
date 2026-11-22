@@ -47,7 +47,8 @@ class FakeAI:
     def extract(self, name, pages):
         if self.fail_extract:
             raise ProviderFailure("Gemini extraction request failed")
-        return DocumentExtraction(document_type="Policy", facts=[
+        document_type = "Employment Agreement" if "agreement" in name.lower() else "Policy"
+        return DocumentExtraction(document_type=document_type, facts=[
             ExtractedFact(name="notice_period", value="30 days", evidence="30 days", page=pages[0].number)
         ])
 
@@ -157,6 +158,53 @@ def test_hybrid_keyword_results_respect_document_filter(setup):
     assert len(hits) == 1 and hits[0]["document_id"] == first
 
 
+def test_metadata_filters_scope_vector_and_keyword_search(setup):
+    client, _, index, _ = setup
+    agreement = upload(client, "agreement.txt", b"The notice period is 30 days.").json()["id"]
+    policy = upload(client, "policy.txt", b"The notice period is 30 days.").json()["id"]
+    pdf_bytes = (Path(__file__).resolve().parents[1] / "samples/company_policy.pdf").read_bytes()
+    pdf_response = upload(client, "company_policy.pdf", pdf_bytes)
+    assert pdf_response.status_code == 201
+    pdf_id = pdf_response.json()["id"]
+    query = "notice period"
+
+    for filters in (
+        {"name": "AGREEMENT.TXT"},
+        {"document_type": "employment agreement"},
+        {"file_type": "txt", "document_type": "Employment Agreement"},
+    ):
+        hits = client.post("/search", json={"query": query, "filters": filters}).json()["results"]
+        assert {hit["document_id"] for hit in hits} == {agreement}
+
+    pdf_hits = client.post("/search", json={"query": query, "filters": {"file_type": "pdf"}}).json()["results"]
+    assert {hit["document_id"] for hit in pdf_hits} == {pdf_id}
+
+    index.skip_results = True
+    hits = client.post("/search", json={"query": query, "filters": {"name": "agreement.txt"}}).json()["results"]
+    assert {hit["document_id"] for hit in hits} == {agreement}
+    assert all(hit["similarity"] is None for hit in hits)
+
+    response = client.post("/search", json={
+        "query": query, "document_ids": [policy], "filters": {"name": "agreement.txt"},
+    })
+    assert response.json()["results"] == []
+
+
+def test_metadata_filter_scopes_agent_search(setup):
+    client, _, _, _ = setup
+    agreement = upload(client, "agreement.txt").json()["id"]
+    upload(client, "policy.txt", b"The notice period is 30 days.")
+    answer = client.post("/ask", json={
+        "query": "What is the notice period?", "filters": {"document_type": "Employment Agreement"},
+    }).json()
+    assert answer["status"] == "answered"
+    assert {source["document_id"] for source in answer["sources"]} == {agreement}
+    missing = client.post("/ask", json={
+        "query": "What is the notice period?", "filters": {"file_type": "pdf"},
+    }).json()
+    assert missing == {"answer": None, "sources": [], "status": "insufficient_evidence"}
+
+
 def test_ask_uses_keyword_only_result(setup):
     client, _, index, _ = setup
     upload(client, text=b"The fictional code is quasar42.")
@@ -208,3 +256,5 @@ def test_answer_source_text_matches_document(setup):
 def test_query_validation(setup):
     client, _, _, _ = setup
     assert client.post("/search", json={"query": "  "}).status_code == 422
+    assert client.post("/search", json={"query": "notice", "filters": {"file_type": "docx"}}).status_code == 422
+    assert client.post("/search", json={"query": "notice", "filters": {"name": "  "}}).status_code == 422

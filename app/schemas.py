@@ -41,9 +41,26 @@ class Source(BaseModel):
     relevance_score: float | None = None
 
 
+class DocumentFilters(BaseModel):
+    name: str | None = None
+    file_type: Literal["pdf", "txt"] | None = None
+    document_type: str | None = None
+
+    @field_validator("name", "document_type")
+    @classmethod
+    def nonblank_filter(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            raise ValueError("Filter must not be blank")
+        return value
+
+
 class QueryRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000)
     document_ids: list[str] | None = None
+    filters: DocumentFilters | None = None
 
     @field_validator("query")
     @classmethod

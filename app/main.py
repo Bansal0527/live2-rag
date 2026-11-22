@@ -54,11 +54,11 @@ def create_app(service: DocumentService | None = None) -> FastAPI:
 
     @app.post("/search", response_model=SearchResponse)
     def search(request: QueryRequest):
-        return current_service().search(request.query, request.document_ids)
+        return current_service().search(request.query, request.document_ids, request.filters)
 
     @app.post("/ask", response_model=AskResponse)
     def ask(request: QueryRequest):
-        return current_service().ask(request.query, request.document_ids)
+        return current_service().ask(request.query, request.document_ids, request.filters)
 
     return app
 

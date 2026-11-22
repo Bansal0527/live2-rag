@@ -5,7 +5,7 @@ import re
 import sqlite3
 from pathlib import Path
 from langchain_core.documents import Document
-from app.schemas import DocumentDetail, DocumentExtraction, DocumentRecord
+from app.schemas import DocumentDetail, DocumentExtraction, DocumentFilters, DocumentRecord
 from app.schemas import Source
 
 STOP_WORDS = {"a", "an", "and", "are", "about", "do", "does", "for", "from", "how",
@@ -106,6 +106,31 @@ class DocumentStore:
     def ready_ids(self) -> set[str]:
         with self._connect() as db:
             rows = db.execute("SELECT id FROM documents WHERE status = 'ready'").fetchall()
+        return {row["id"] for row in rows}
+
+    def filtered_ready_ids(self, document_ids: list[str] | None = None,
+                           filters: DocumentFilters | None = None) -> set[str]:
+        if document_ids == []:
+            return set()
+        sql = """SELECT d.id FROM documents d
+                 LEFT JOIN extractions e ON e.document_id = d.id
+                 WHERE d.status = 'ready'"""
+        params: list[str] = []
+        if document_ids is not None:
+            sql += f" AND d.id IN ({','.join('?' for _ in document_ids)})"
+            params.extend(document_ids)
+        if filters is not None:
+            if filters.name is not None:
+                sql += " AND d.name = ? COLLATE NOCASE"
+                params.append(filters.name)
+            if filters.file_type is not None:
+                sql += " AND d.file_type = ?"
+                params.append(filters.file_type)
+            if filters.document_type is not None:
+                sql += " AND json_extract(e.payload, '$.document_type') = ? COLLATE NOCASE"
+                params.append(filters.document_type)
+        with self._connect() as db:
+            rows = db.execute(sql, params).fetchall()
         return {row["id"] for row in rows}
 
     def unindexed_ready_ids(self) -> list[str]:
